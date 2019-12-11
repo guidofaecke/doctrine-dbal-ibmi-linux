@@ -9,7 +9,7 @@ Just an idea to access DB2 on IBMi via external Linux server running on ODBC.
 First, install with Composer:
 
 ```
-$ composer require guidofaecke/doctrine-dbal-ibmi
+$ composer require guidofaecke/doctrine-dbal-ibmi-linux
 ```
 
 ## Configuration
