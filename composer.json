@@ -1,0 +1,29 @@
+{
+    "name" : "guidofaecke/doctrine-dbal-ibmi-linux",
+    "description" : "Doctrine DBAL module for DB2 on the IBM i platform, while using odbc drivers on linux",
+    "type" : "library",
+    "license" : "MIT",
+    "authors" : [{
+            "name" : "James Titcumb",
+            "email" : "james@asgrim.com"
+        }, {
+            "name" : "Cassiano Vailati",
+            "email" : "c.vailati@esconsulting.it"
+        }, {
+            "name" : "Guido Faecke",
+            "email" : "guido@emcent.com"
+        }
+    ],
+    "require" : {
+        "php" : "^5.6|^7.0|^7.1"
+    },
+    "require-dev" : {
+        "phpunit/phpunit" : "^5.6",
+        "doctrine/dbal": "^2.10"
+    },
+    "autoload" : {
+        "psr-4" : {
+            "DoctrineDbalIbmiLinux\\" : "src/"
+        }
+    }
+}
