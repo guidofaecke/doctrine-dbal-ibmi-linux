@@ -44,16 +44,16 @@ class DB2Connection implements Connection, ServerInfoAwareConnection
      *
      * @throws DB2Exception
      */
-    public function __construct(array $params, $username, $password, $driverOptions = [])
+    public function __construct(array $params, $username, $password)
     {
         $isPersistent = (isset($params['persistent']) && $params['persistent'] === true);
 
         if ($isPersistent) {
 //            $conn = db2_pconnect($params['dbname'], $username, $password, $driverOptions);
-            $conn = odbc_pconnect($params['dbname'], $username, $password, $driverOptions);
+            $conn = odbc_pconnect($params['dbname'], $username, $password);
         } else {
 //            $conn = db2_connect($params['dbname'], $username, $password, $driverOptions);
-            $conn = odbc_connect($params['dbname'], $username, $password, $driverOptions);
+            $conn = odbc_connect($params['dbname'], $username, $password);
         }
 
         if ($conn === false) {
