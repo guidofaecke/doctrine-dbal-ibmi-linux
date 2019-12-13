@@ -12,6 +12,11 @@ use ReflectionClass;
 use ReflectionObject;
 use ReflectionProperty;
 use stdClass;
+use function odbc_error;
+use function odbc_errormsg;
+use function odbc_fetch_array;
+use function odbc_fetch_object;
+use function odbc_num_rows;
 use function var_dump;
 use const CASE_LOWER;
 use const DB2_BINARY;
@@ -104,7 +109,7 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
         var_dump(__LINE__);
         switch ($type) {
             case ParameterType::INTEGER:
-                $this->bind($column, $variable, DB2_PARAM_IN, DB2_LONG);
+                $this->bind($column, $variable); //, DB2_PARAM_IN, DB2_LONG);
                 break;
 
             case ParameterType::LARGE_OBJECT:
@@ -116,13 +121,13 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
                 $handle = $this->createTemporaryFile();
                 $path   = stream_get_meta_data($handle)['uri'];
 
-                $this->bind($column, $path, DB2_PARAM_FILE, DB2_BINARY);
+                $this->bind($column, $path); //, DB2_PARAM_FILE, DB2_BINARY);
 
                 $this->lobs[$column] = [&$variable, $handle];
                 break;
 
             default:
-                $this->bind($column, $variable, DB2_PARAM_IN, DB2_CHAR);
+                $this->bind($column, $variable); //, DB2_PARAM_IN, DB2_CHAR);
                 break;
         }
 
@@ -135,13 +140,13 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      *
      * @throws DB2Exception
      */
-    private function bind($position, &$variable, int $parameterType, int $dataType) : void
+    private function bind($position, &$variable) : void //, int $parameterType, int $dataType) : void
     {
         $this->bindParam[$position] =& $variable;
 
-        if (! db2_bind_param($this->stmt, $position, 'variable', $parameterType, $dataType)) {
-            throw new DB2Exception(db2_stmt_errormsg());
-        }
+//        if (! db2_bind_param($this->stmt, $position, 'variable', $parameterType, $dataType)) {
+//            throw new DB2Exception(db2_stmt_errormsg());
+//        }
     }
 
     /**
@@ -151,7 +156,8 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
     {
         $this->bindParam = [];
 
-        if (! db2_free_result($this->stmt)) {
+//        if (! db2_free_result($this->stmt)) {
+        if (! odbc_free_result($this->stmt)) {
             return false;
         }
 
@@ -165,7 +171,8 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      */
     public function columnCount()
     {
-        return db2_num_fields($this->stmt) ?: 0;
+//        return db2_num_fields($this->stmt) ?: 0;
+        return odbc_num_fields($this->stmt) ?: 0;
     }
 
     /**
@@ -173,7 +180,8 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      */
     public function errorCode()
     {
-        return db2_stmt_error();
+//        return db2_stmt_error();
+        return odbc_errormsg();
     }
 
     /**
@@ -182,8 +190,10 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
     public function errorInfo()
     {
         return [
-            db2_stmt_errormsg(),
-            db2_stmt_error(),
+//            db2_stmt_errormsg(),
+//            db2_stmt_error(),
+            odbc_errormsg(),
+            odbc_error(),
         ];
     }
 
@@ -212,7 +222,8 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
             $this->writeStringToStream($source, $target);
         }
 
-        $retval = db2_execute($this->stmt, $params);
+//        $retval = db2_execute($this->stmt, $params);
+        $retval = odbc_execute($this->stmt, $params);
 
         foreach ($this->lobs as [, $handle]) {
             fclose($handle);
@@ -221,7 +232,8 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
         $this->lobs = [];
 
         if ($retval === false) {
-            throw new DB2Exception(db2_stmt_errormsg());
+//            throw new DB2Exception(db2_stmt_errormsg());
+            throw new DB2Exception(odbc_errormsg());
         }
 
         $this->result = true;
@@ -269,7 +281,8 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
                 return db2_fetch_both($this->stmt);
 
             case FetchMode::ASSOCIATIVE:
-                return db2_fetch_assoc($this->stmt);
+//                return db2_fetch_assoc($this->stmt);
+                return odbc_fetch_array($this->stmt);
 
             case FetchMode::CUSTOM_OBJECT:
                 $className = $this->defaultFetchClass;
@@ -281,7 +294,8 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
                     $ctorArgs  = $args[2] ?? [];
                 }
 
-                $result = db2_fetch_object($this->stmt);
+//                $result = db2_fetch_object($this->stmt);
+                $result = odbc_fetch_object($this->stmt);
 
                 if ($result instanceof stdClass) {
                     $result = $this->castObject($result, $className, $ctorArgs);
@@ -293,7 +307,8 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
                 return db2_fetch_array($this->stmt);
 
             case FetchMode::STANDARD_OBJECT:
-                return db2_fetch_object($this->stmt);
+//                return db2_fetch_object($this->stmt);
+                return odbc_fetch_object($this->stmt);
 
             default:
                 throw new DB2Exception('Given Fetch-Style ' . $fetchMode . ' is not supported.');
@@ -346,7 +361,8 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      */
     public function rowCount()
     {
-        return @db2_num_rows($this->stmt) ? : 0;
+//        return @db2_num_rows($this->stmt) ? : 0;
+        return @odbc_num_rows($this->stmt) ? : 0;
     }
 
     /**
