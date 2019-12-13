@@ -2,29 +2,120 @@
 
 namespace DoctrineDbalIbmiLinux\Driver;
 
-/**
- * IBMi Db2 Connection.
- * More documentation about iSeries schema at https://www-01.ibm.com/support/knowledgecenter/ssw_ibm_i_72/db2/rbafzcatsqlcolumns.htm
- *
- * @author Cassiano Vailati <c.vailati@esconsulting.it>
- * @author James Titcumb <james@asgrim.com>
- */
-class DB2IBMiConnection extends DB2Connection
+use Doctrine\DBAL\Driver\Connection;
+use Doctrine\DBAL\Driver\IBMDB2\DB2Exception;
+use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
+use Doctrine\DBAL\ParameterType;
+use stdClass;
+use function odbc_commit;
+use function odbc_error;
+use function odbc_errormsg;
+use function odbc_exec;
+use function odbc_num_rows;
+use function odbc_pconnect;
+use function odbc_prepare;
+use function func_get_args;
+
+class DB2IBMiConnection implements Connection, ServerInfoAwareConnection
 {
-    protected $driverOptions = array();
+    /** @var resource */
+    private $conn = null;
 
     /**
-     * @param array  $params
-     * @param string $username
-     * @param string $password
-     * @param array  $driverOptions
+     * @param mixed[] $params
+     * @param string  $username
+     * @param string  $password
+     * @param mixed[] $driverOptions
      *
-     * @throws \Doctrine\DBAL\Driver\IBMDB2\DB2Exception
+     * @throws DB2Exception
      */
-    public function __construct(array $params, $username, $password, $driverOptions = array())
+    public function __construct(array $params, $username, $password)
     {
-        $this->driverOptions = $driverOptions;
-        parent::__construct($params, $username, $password, $driverOptions);
+        $isPersistent = (isset($params['persistent']) && $params['persistent'] === true);
+
+        if ($isPersistent) {
+//            $conn = db2_pconnect($params['dbname'], $username, $password, $driverOptions);
+            $conn = odbc_pconnect($params['dbname'], $username, $password);
+        } else {
+//            $conn = db2_connect($params['dbname'], $username, $password, $driverOptions);
+            $conn = odbc_connect($params['dbname'], $username, $password);
+        }
+
+        if ($conn === false) {
+            throw new DB2Exception(odbc_errormsg());
+        }
+
+        $this->conn = $conn;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getServerVersion()
+    {
+        return '';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function requiresQueryForServerVersion()
+    {
+        return false;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function prepare($sql)
+    {
+        $stmt = @odbc_prepare($this->conn, $sql);
+        if (! $stmt) {
+            throw new DB2Exception(odbc_errormsg());
+        }
+
+        return new DB2IBMiLinuxStatement($stmt);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function query()
+    {
+        $args = func_get_args();
+        $sql  = $args[0];
+        $stmt = $this->prepare($sql);
+        $stmt->execute();
+
+        return $stmt;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function quote($input, $type = ParameterType::STRING)
+    {
+//        $input = db2_escape_string($input);
+
+        if ($type === ParameterType::INTEGER) {
+            return $input;
+        }
+
+        return "'" . $input . "'";
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function exec($statement)
+    {
+        $stmt = @odbc_exec($this->conn, $statement);
+
+        if ($stmt === false) {
+            throw new DB2Exception(odbc_errormsg());
+        }
+
+        return odbc_num_rows($stmt);
     }
 
     /**
@@ -32,47 +123,55 @@ class DB2IBMiConnection extends DB2Connection
      */
     public function lastInsertId($name = null)
     {
-        $sql = 'SELECT IDENTITY_VAL_LOCAL() AS VAL FROM QSYS2'.$this->getSchemaSeparatorSymbol().'QSQPTABL';
-        $stmt = $this->prepare($sql);
-        $stmt->execute();
-
-        $res = $stmt->fetch();
-
-        return $res['VAL'];
+        return ''; //db2_last_insert_id($this->conn);
     }
 
     /**
-     * Returns the appropriate schema separation symbol for i5 systems.
-     * Other systems can hardcode '.' but i5 may need '.' or  '/' depending on the naming mode.
-     *
-     * @return string
+     * {@inheritdoc}
      */
-    public function getSchemaSeparatorSymbol()
+    public function beginTransaction()
     {
-        // if "i5 naming" is on, use '/' to separate schema and table. Otherwise use '.'
-        if (array_key_exists('i5_naming', $this->driverOptions) && $this->driverOptions['i5_naming']) {
+        odbc_autocommit($this->conn, false);
+    }
 
-            // "i5 naming" mode requires a slash
-            return '/';
-
-        } else {
-            // SQL naming requires a dot
-            return '.';
+    /**
+     * {@inheritdoc}
+     */
+    public function commit()
+    {
+        if (! odbc_commit($this->conn)) {
+            throw new DB2Exception(odbc_errormsg($this->conn));
         }
+        odbc_autocommit($this->conn, true);
     }
 
     /**
-     *
-     * Retrieves ibm_db2 native resource handle.
-     *
-     * Could be used if part of your application is not using DBAL.
-     *
-     * @return resource
+     * {@inheritdoc}
      */
-    public function getWrappedResourceHandle()
+    public function rollBack()
     {
-        $connProperty = new \ReflectionProperty(DB2Connection::class, '_conn');
-        $connProperty->setAccessible(true);
-        return $connProperty->getValue($this);
+        if (! odbc_rollback($this->conn)) {
+            throw new DB2Exception(odbc_errormsg($this->conn));
+        }
+        odbc_autocommit($this->conn, true);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function errorCode()
+    {
+        return odbc_error($this->conn);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function errorInfo()
+    {
+        return [
+            0 => odbc_errormsg($this->conn),
+            1 => $this->errorCode(),
+        ];
     }
 }

@@ -2,7 +2,7 @@
 
 namespace DoctrineDbalIbmiLinux\Driver;
 
-class DB2Driver extends AbstractDB2Driver
+class DB2IBMiLinuxDriver extends AbstractDB2Driver
 {
     /**
      * {@inheritdoc}
@@ -34,7 +34,7 @@ class DB2Driver extends AbstractDB2Driver
             $password = null;
         }
 
-        return new DB2IBMiConnection($params, $username, $password, $driverOptions);
+        return new DB2IBMiLinuxIBMiConnection($params, $username, $password, $driverOptions);
     }
 
     /**
@@ -42,6 +42,6 @@ class DB2Driver extends AbstractDB2Driver
      */
     public function getName()
     {
-        return 'ibm_db2';
+        return 'ibmi_db2_linux';
     }
 }

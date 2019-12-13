@@ -29,7 +29,7 @@ use Doctrine\DBAL\Platforms\DB2Platform;
  * @author James Titcumb <james@asgrim.com>
  * @author Guido Faecke <guido@emcent.com>
  */
-class DB2IBMiPlatform extends DB2Platform
+class DB2IBMiLinuxPlatform extends DB2Platform
 {
     /**
      * {@inheritDoc}

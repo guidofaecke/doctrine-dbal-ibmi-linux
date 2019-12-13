@@ -5,7 +5,7 @@ namespace DoctrineDbalIbmiLinux\Schema;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types\Type;
 
-class DB2IBMiSchemaManager extends DB2LUWSchemaManager
+class DB2IBMiSchemaManager extends DB2LUWIBMiLinuxSchemaManager
 {
     /**
      * {@inheritdoc}

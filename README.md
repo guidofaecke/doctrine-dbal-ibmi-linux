@@ -24,7 +24,7 @@ return [
     'doctrine' => [
         'connection' => [
             'orm_default' => [
-                'driverClass' => \DoctrineDbalIbmiLinux\Driver\DB2Driver::class,
+                'driverClass' => \DoctrineDbalIbmiLinux\Driver\DB2IBMiLinuxDriver::class,
                 'params' => [
                     'host'       => '...',
                     'user'       => '...',

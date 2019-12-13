@@ -2,7 +2,7 @@
 
 namespace DoctrineDbalIbmiLinux\Schema;
 
-class DB2LUWSchemaManager extends DB2SchemaManager
+class DB2LUWIBMiLinuxSchemaManager extends DB2IBMiLinuxSchemaManager
 {
     protected function _getPortableTableColumnDefinition($tableColumn)
     {

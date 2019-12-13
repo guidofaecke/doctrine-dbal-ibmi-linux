@@ -8,7 +8,7 @@ use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
-use DoctrineDbalIbmiLinux\Platform\DB2IBMiPlatform;
+use DoctrineDbalIbmiLinux\Platform\DB2IBMiLinuxPlatform;
 use const CASE_LOWER;
 use function array_change_key_case;
 use function is_resource;
@@ -21,7 +21,7 @@ use function substr;
 /**
  * IBM Db2 Schema Manager.
  */
-class DB2SchemaManager extends AbstractSchemaManager
+class DB2IBMiLinuxSchemaManager extends AbstractSchemaManager
 {
     /**
      * {@inheritdoc}
@@ -220,7 +220,7 @@ class DB2SchemaManager extends AbstractSchemaManager
     {
         $table = parent::listTableDetails($tableName);
 
-        /** @var DB2IBMiPlatform $platform */
+        /** @var DB2IBMiLinuxPlatform $platform */
         $platform = $this->_platform;
         $sql      = $platform->getListTableCommentsSQL($tableName);
 
