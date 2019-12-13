@@ -3,7 +3,6 @@
 namespace DoctrineDbalIbmiLinux\Driver;
 
 use Doctrine\DBAL\Driver;
-use Doctrine\DBAL\Platforms\DB2Platform;
 use DoctrineDbalIbmiLinux\Platform\DB2IBMiPlatform;
 use DoctrineDbalIbmiLinux\Schema\DB2IBMiSchemaManager;
 use DoctrineDbalIbmiLinux\Schema\DB2LUWSchemaManager;
@@ -27,11 +26,7 @@ abstract class AbstractDB2Driver implements Driver
      */
     public function getDatabasePlatform()
     {
-        if (PHP_OS === static::SYSTEM_IBMI) {
-            return new DB2IBMiPlatform();
-        } else {
-            return new DB2Platform();
-        }
+        return new DB2IBMiPlatform();
     }
 
     /**
@@ -39,10 +34,6 @@ abstract class AbstractDB2Driver implements Driver
      */
     public function getSchemaManager(\Doctrine\DBAL\Connection $conn)
     {
-        if (PHP_OS === static::SYSTEM_IBMI) {
-            return new DB2IBMiSchemaManager($conn);
-        } else {
-            return new DB2LUWSchemaManager($conn);
-        }
+        return new DB2LUWSchemaManager($conn);
     }
 }
