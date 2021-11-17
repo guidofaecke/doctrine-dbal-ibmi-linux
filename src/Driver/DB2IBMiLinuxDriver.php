@@ -6,14 +6,15 @@ class DB2IBMiLinuxDriver extends AbstractDB2Driver
 {
     /**
      * {@inheritdoc}
+     * @throws \Doctrine\DBAL\Driver\IBMDB2\DB2Exception
      */
     public function connect(array $params, $username = null, $password = null, array $driverOptions = array())
     {
-        if ( ! isset($params['protocol'])) {
+        if (! isset($params['protocol'])) {
             $params['protocol'] = 'TCPIP';
         }
 
-        if ( ! isset($params['naming'])) {
+        if (! isset($params['naming'])) {
             $params['naming'] = 1;
         }
 
@@ -40,7 +41,7 @@ class DB2IBMiLinuxDriver extends AbstractDB2Driver
     /**
      * {@inheritdoc}
      */
-    public function getName()
+    public function getName(): string
     {
         return 'ibmi_db2_linux';
     }

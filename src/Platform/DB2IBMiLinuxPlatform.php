@@ -1,4 +1,5 @@
 <?php
+
 /*
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -23,7 +24,8 @@ use Doctrine\DBAL\Platforms\DB2Platform;
 
 /**
  * IBMi Db2 Schema Manager.
- * More documentation about iSeries schema at https://www-01.ibm.com/support/knowledgecenter/ssw_ibm_i_72/db2/rbafzcatsqlcolumns.htm
+ * More documentation about iSeries schema
+ * at https://www-01.ibm.com/support/knowledgecenter/ssw_ibm_i_72/db2/rbafzcatsqlcolumns.htm
  *
  * @author Cassiano Vailati <c.vailati@esconsulting.it>
  * @author James Titcumb <james@asgrim.com>
@@ -37,36 +39,36 @@ class DB2IBMiLinuxPlatform extends DB2Platform
     public function initializeDoctrineTypeMappings()
     {
         $this->doctrineTypeMapping = array(
-            'smallint'      => 'smallint',
-            'bigint'        => 'bigint',
-            'integer'       => 'integer',
-            'rowid'         => 'integer',
-            'time'          => 'time',
-            'date'          => 'date',
-            'varchar'       => 'string',
-            'character'     => 'string',
-            'char'          => 'string',
-            'nvarchar'          => 'string',
-            'nchar'          => 'string',
-            'char () for bit data' => 'string',
+            'smallint'                => 'smallint',
+            'bigint'                  => 'bigint',
+            'integer'                 => 'integer',
+            'rowid'                   => 'integer',
+            'time'                    => 'time',
+            'date'                    => 'date',
+            'varchar'                 => 'string',
+            'character'               => 'string',
+            'char'                    => 'string',
+            'nvarchar'                => 'string',
+            'nchar'                   => 'string',
+            'char () for bit data'    => 'string',
             'varchar () for bit data' => 'string',
-            'varg'          => 'string',
-            'vargraphic'          => 'string',
-            'graphic'       => 'string',
-            'varbinary'     => 'binary',
-            'binary'        => 'binary',
-            'varbin'        => 'binary',
-            'clob'          => 'text',
-            'nclob'          => 'text',
-            'dbclob'        => 'text',
-            'blob'          => 'blob',
-            'decimal'       => 'decimal',
-            'numeric'       => 'float',
-            'double'        => 'float',
-            'real'          => 'float',
-            'float'         => 'float',
-            'timestamp'     => 'datetime',
-            'timestmp'      => 'datetime',
+            'varg'                    => 'string',
+            'vargraphic'              => 'string',
+            'graphic'                 => 'string',
+            'varbinary'               => 'binary',
+            'binary'                  => 'binary',
+            'varbin'                  => 'binary',
+            'clob'                    => 'text',
+            'nclob'                   => 'text',
+            'dbclob'                  => 'text',
+            'blob'                    => 'blob',
+            'decimal'                 => 'decimal',
+            'numeric'                 => 'float',
+            'double'                  => 'float',
+            'real'                    => 'float',
+            'float'                   => 'float',
+            'timestamp'               => 'datetime',
+            'timestmp'                => 'datetime',
         );
     }
 
@@ -75,7 +77,8 @@ class DB2IBMiLinuxPlatform extends DB2Platform
      */
     protected function getVarcharTypeDeclarationSQLSnippet($length, $fixed)
     {
-        return $fixed ? ($length ? 'CHAR(' . $length . ')' : 'CHAR(255)')
+        return $fixed
+            ? ($length ? 'CHAR(' . $length . ')' : 'CHAR(255)')
             : ($length ? 'VARCHAR(' . $length . ')' : 'VARCHAR(255)');
     }
 
@@ -86,29 +89,31 @@ class DB2IBMiLinuxPlatform extends DB2Platform
     {
         return "
             SELECT DISTINCT
-               c.column_def as default,
-               c.table_schem as tabschema,
-               c.table_name as tabname,
-               c.column_name as colname,
-               c.ordinal_position as colno,
-               c.type_name as typename,
-               c.is_nullable as nulls,
-               c.column_size as length,
-               c.decimal_digits as scale,
-               CASE
-                   WHEN c.pseudo_column = 2 THEN 'YES'
-                   ELSE 'NO'
-               END as identity,
-               pk.constraint_type AS tabconsttype,
-               pk.key_seq as colseq,
-               CASE
-                   WHEN c.HAS_DEFAULT = 'J' THEN 1
-                   ELSE 0
-               END AS autoincrement
-             FROM SYSIBM.sqlcolumns as c
-             LEFT JOIN
-             (
-                SELECT
+              c.column_def as default,
+              c.table_schem as tabschema,
+              c.table_name as tabname,
+              c.column_name as colname,
+              c.ordinal_position as colno,
+              c.type_name as typename,
+              c.is_nullable as nulls,
+              c.column_size as length,
+              c.decimal_digits as scale,
+              CASE
+                WHEN c.pseudo_column = 2 
+                  THEN 'YES'
+                  ELSE 'NO'
+                END as identity,
+              pk.constraint_type AS tabconsttype,
+              pk.key_seq as colseq,
+              CASE
+                WHEN c.HAS_DEFAULT = 'J' 
+                  THEN 1
+                  ELSE 0
+                END AS autoincrement
+            FROM SYSIBM.sqlcolumns as c
+            LEFT JOIN
+            (
+              SELECT
                 tc.TABLE_SCHEMA,
                 tc.TABLE_NAME,
                 tc.CONSTRAINT_TYPE,
@@ -116,18 +121,20 @@ class DB2IBMiLinuxPlatform extends DB2Platform
                 spk.KEY_SEQ
                 FROM SYSIBM.TABLE_CONSTRAINTS tc
                 LEFT JOIN SYSIBM.SQLPRIMARYKEYS spk
-                    ON tc.CONSTRAINT_NAME = spk.PK_NAME AND tc.TABLE_SCHEMA = spk.TABLE_SCHEM AND tc.TABLE_NAME = spk.TABLE_NAME
-                WHERE CONSTRAINT_TYPE = 'PRIMARY KEY'
+                  ON tc.CONSTRAINT_NAME = spk.PK_NAME 
+                  AND tc.TABLE_SCHEMA = spk.TABLE_SCHEM 
+                  AND tc.TABLE_NAME = spk.TABLE_NAME
+              WHERE CONSTRAINT_TYPE = 'PRIMARY KEY'
                 AND UPPER(tc.TABLE_NAME) = UPPER('" . $table . "')
-                ". ($database !== null ? "AND tc.TABLE_SCHEMA = UPPER('" . $database . "')" : '') ."
-             ) pk ON
-                c.TABLE_SCHEM = pk.TABLE_SCHEMA
-                AND c.TABLE_NAME = pk.TABLE_NAME
-                AND c.COLUMN_NAME = pk.COLUMN_NAME
-             WHERE
-                UPPER(c.TABLE_NAME) = UPPER('" . $table . "')
-                ". ($database  !== null ? "AND c.TABLE_SCHEM = UPPER('" . $database . "')" : '') ."
-             ORDER BY c.ordinal_position
+                  " . ($database !== null ? "AND tc.TABLE_SCHEMA = UPPER('" . $database . "')" : '') . "
+            ) pk ON
+              c.TABLE_SCHEM = pk.TABLE_SCHEMA
+              AND c.TABLE_NAME = pk.TABLE_NAME
+              AND c.COLUMN_NAME = pk.COLUMN_NAME
+            WHERE
+              UPPER(c.TABLE_NAME) = UPPER('" . $table . "')
+                " . ($database  !== null ? "AND c.TABLE_SCHEM = UPPER('" . $database . "')" : '') . "
+            ORDER BY c.ordinal_position
         ";
     }
 
@@ -140,10 +147,10 @@ class DB2IBMiLinuxPlatform extends DB2Platform
             SELECT
               DISTINCT NAME
             FROM
-                SYSIBM.tables t
+              SYSIBM.tables t
             WHERE
               table_type='BASE TABLE'
-              ". ($database !== null ? "AND t.TABLE_SCHEMA = UPPER('" . $database . "')" : '') ."
+                " . ($database !== null ? "AND t.TABLE_SCHEMA = UPPER('" . $database . "')" : '') . "
             ORDER BY NAME
         ";
     }
@@ -159,7 +166,7 @@ class DB2IBMiLinuxPlatform extends DB2Platform
               TEXT
             FROM QSYS2.sysviews v
             WHERE 1=1
-            ". ($database !== null ? "AND v.TABLE_SCHEMA = UPPER('" . $database . "')" : '') ."
+              " . ($database !== null ? "AND v.TABLE_SCHEMA = UPPER('" . $database . "')" : '') . "
             ORDER BY NAME
         ";
     }
@@ -167,7 +174,7 @@ class DB2IBMiLinuxPlatform extends DB2Platform
     /**
      * {@inheritDoc}
      */
-    public function getListTableIndexesSQL($table, $database = null)
+    public function getListTableIndexesSQL($table, $database = null): string
     {
         return  "
             SELECT
@@ -184,16 +191,18 @@ class DB2IBMiLinuxPlatform extends DB2Platform
               FROM
               QSYS2.syscstcol scc
               LEFT JOIN QSYS2.syscst sc ON
-                  scc.TABLE_SCHEMA = sc.TABLE_SCHEMA AND scc.TABLE_NAME = sc.TABLE_NAME AND scc.CONSTRAINT_NAME = sc.CONSTRAINT_NAME
+                  scc.TABLE_SCHEMA = sc.TABLE_SCHEMA 
+                  AND scc.TABLE_NAME = sc.TABLE_NAME 
+                  AND scc.CONSTRAINT_NAME = sc.CONSTRAINT_NAME
             WHERE scc.TABLE_NAME = UPPER('" . $table . "')
-            ". ($database !== null ? "AND scc.TABLE_SCHEMA = UPPER('" . $database . "')" : '') ."
+            " . ($database !== null ? "AND scc.TABLE_SCHEMA = UPPER('" . $database . "')" : '') . "
         ";
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getListTableForeignKeysSQL($table, $database = null)
+    public function getListTableForeignKeysSQL($table, $database = null): string
     {
         return "
             SELECT DISTINCT
@@ -220,7 +229,7 @@ class DB2IBMiLinuxPlatform extends DB2Platform
      *
      * @throws \Doctrine\DBAL\DBALException If not supported on this platform.
      */
-    public function getListDatabasesSQL()
+    public function getListDatabasesSQL(): string
     {
         return "
             SELECT
@@ -234,120 +243,38 @@ class DB2IBMiLinuxPlatform extends DB2Platform
     /**
      * {@inheritDoc}
      */
-    public function getCreateDatabaseSQL($database)
+    public function getCreateDatabaseSQL($database): string
     {
-        return "CREATE COLLECTION ".$database;
+        return "CREATE COLLECTION " . $database;
     }
 
     /**
      * {@inheritDoc}
      */
-    protected function doModifyLimitQuery($query, $limit, $offset = null)
+    protected function doModifyLimitQuery($query, $limit, $offset = null): string
     {
-        $where = array();
-
-        if ($offset > 0) {
-            $where[] = sprintf('db22.DC_ROWNUM >= %d', $offset + 1);
-        }
-
-        if ($limit !== null) {
-            $where[] = sprintf('db22.DC_ROWNUM <= %d', $offset + $limit);
-        }
-
-        if (empty($where)) {
+        if ($limit === 0 || $limit === null) {
             return $query;
         }
 
-        // retrieve ORDER BY string
-        $orderBy = $this->getOrderByForOver($query);
+        if ($offset !== null && $offset > 0) {
+            return sprintf('%s LIMIT %s OFFSET %s', $query, $limit, $offset);
+        }
 
-        return sprintf(
-            'SELECT db22.* FROM (SELECT db21.*, ROW_NUMBER() OVER(%s) AS DC_ROWNUM FROM (%s) db21) db22 WHERE %s',
-            $orderBy,
-            $query,
-            implode(' AND ', $where)
-        );
+        return sprintf('%s LIMIT %s', $query, $limit);
+//        return sprintf(
+//            'SELECT db22.* FROM (SELECT db21.*, ROW_NUMBER() OVER(%s) AS DC_ROWNUM FROM (%s) db21) db22 WHERE %s',
+//            $orderBy,
+//            $query,
+//            implode(' AND ', $where)
+//        );
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getDateTimeFormatString()
+    public function getDateTimeFormatString(): string
     {
         return 'Y-m-d-H.i.s.u';
-    }
-
-    /**
-     * Prepare ORDER BY string for OVER() if applicable
-     *
-     * @param string $query
-     *
-     * @return string
-     */
-    private function getOrderByForOver(string $query)
-    {
-        //determine if 'ORDER BY' is part of the query
-        $orderByPosition = strripos($query, 'order by');
-
-        // early return if ORDER BY not found in query string
-        if (false === $orderByPosition) {
-            return '';
-        }
-
-        // build dictionary if available
-        // re-sequence values
-        $queryArray = array_values(
-            // filter out 'AS'
-            array_filter(
-                // split selected columns
-                preg_split(
-                    '/[, ]/',
-                    substr($query, 0, $orderByPosition -1))
-                , function($element) {
-                    // don't return 'AS' and empty elements
-                    return (
-                        strtoupper($element) !== 'AS'
-                        && trim($element !== '')
-                        && $element !== false
-                        );
-                }
-            )
-        );
-
-        $orderByArray = explode(',', substr($query, $orderByPosition + strlen('ORDER BY')));
-
-        foreach ($orderByArray as $orderIndex => $orderValue) {
-            $splitOrder = array_filter(explode(' ', $orderValue));
-
-            foreach ($splitOrder as $splitIndex => $splitValue) {
-                switch (strtoupper($splitValue)) {
-                    case 'ASC':
-                        // no break
-                    case 'DESC':
-                        break;
-                    default:
-                        $arrayFound = array_search($splitValue, $queryArray);
-
-                        $arrayPosition = substr(trim($splitValue), 0, 6) === 'dctrn_' ? 0 : 1;
-
-                        $splitOrder[$splitIndex] = $arrayFound === false ||
-                        $arrayFound >= count($queryArray) ||
-                        $queryArray[$arrayFound + $arrayPosition] === ""
-                            ? $splitValue
-                            : $queryArray[$arrayFound + $arrayPosition];
-                            break;
-                }
-            }
-
-            $orderByArray[$orderIndex] = array_filter($splitOrder);
-        }
-
-        foreach ($orderByArray as $orderIndex => $orderValue) {
-            $orderByArray[$orderIndex] = implode(' ', $orderValue);
-        }
-
-        $orderByArray[0] = 'ORDER BY ' . $orderByArray[0];
-
-        return implode(',', $orderByArray);
     }
 }

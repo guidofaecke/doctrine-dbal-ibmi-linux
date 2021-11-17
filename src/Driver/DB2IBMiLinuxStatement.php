@@ -2,40 +2,21 @@
 
 namespace DoctrineDbalIbmiLinux\Driver;
 
+use Doctrine\DBAL\Driver\PDO\Result as PDOResult;
+use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\Driver\StatementIterator;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\DBAL\ParameterType;
 use IteratorAggregate;
 use PDO;
+use PDOException;
+use PDOStatement;
 use ReflectionClass;
 use ReflectionObject;
-use ReflectionProperty;
 use stdClass;
-use function odbc_error;
-use function odbc_errormsg;
-use function odbc_fetch_array;
-use function odbc_fetch_object;
-use function odbc_num_rows;
-use function var_dump;
-use const CASE_LOWER;
-use const DB2_BINARY;
-use const DB2_CHAR;
-use const DB2_LONG;
-use const DB2_PARAM_FILE;
-use const DB2_PARAM_IN;
+
 use function array_change_key_case;
-use function db2_bind_param;
-use function db2_execute;
-use function db2_fetch_array;
-use function db2_fetch_assoc;
-use function db2_fetch_both;
-use function db2_fetch_object;
-use function db2_free_result;
-use function db2_num_fields;
-use function db2_num_rows;
-use function db2_stmt_error;
-use function db2_stmt_errormsg;
 use function error_get_last;
 use function fclose;
 use function func_get_args;
@@ -52,30 +33,32 @@ use function stream_get_meta_data;
 use function strtolower;
 use function tmpfile;
 
+use const CASE_LOWER;
+
 class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
 {
     /** @var resource */
     private $stmt;
 
-    /** @var mixed[] */
+    /** @var array */
     private $bindParam = [];
 
     /**
      * Map of LOB parameter positions to the tuples containing reference to the variable bound to the driver statement
      * and the temporary file handle bound to the underlying statement
      *
-     * @var mixed[][]
+     * @var array[]
      */
     private $lobs = [];
 
     /** @var string Name of the default class to instantiate when fetching class instances. */
     private $defaultFetchClass = '\stdClass';
 
-    /** @var mixed[] Constructor arguments for the default class to instantiate when fetching class instances. */
+    /** @var array Constructor arguments for the default class to instantiate when fetching class instances. */
     private $defaultFetchClassCtorArgs = [];
 
     /** @var int */
-    private $defaultFetchMode = FetchMode::MIXED;
+    private $defaultFetchMode = FetchMode::ASSOCIATIVE;
 
     /**
      * Indicates whether the statement is in the state when fetching results is possible
@@ -85,9 +68,9 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
     private $result = false;
 
     /**
-     * @param resource $stmt
+     * @param PDOStatement $stmt
      */
-    public function __construct($stmt)
+    public function __construct(PDOStatement $stmt)
     {
         $this->stmt = $stmt;
     }
@@ -95,18 +78,16 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
     /**
      * {@inheritdoc}
      */
-    public function bindValue($param, $value, $type = ParameterType::STRING)
+    public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
-        var_dump(__LINE__);
         return $this->bindParam($param, $value, $type);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function bindParam($column, &$variable, $type = ParameterType::STRING, $length = null)
+    public function bindParam($column, &$variable, $type = ParameterType::STRING, $length = null): bool
     {
-        var_dump(__LINE__);
         switch ($type) {
             case ParameterType::INTEGER:
                 $this->bind($column, $variable); //, DB2_PARAM_IN, DB2_LONG);
@@ -135,12 +116,12 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
     }
 
     /**
-     * @param int   $position Parameter position
+     * @param int $position Parameter position
      * @param mixed $variable
      *
      * @throws DB2Exception
      */
-    private function bind($position, &$variable) : void //, int $parameterType, int $dataType) : void
+    private function bind(int $position, &$variable): void //, int $parameterType, int $dataType) : void
     {
         $this->bindParam[$position] =& $variable;
 
@@ -152,12 +133,13 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
     /**
      * {@inheritdoc}
      */
-    public function closeCursor()
+    public function closeCursor(): bool
     {
         $this->bindParam = [];
 
+        if (! $this->stmt->closeCursor()) {
 //        if (! db2_free_result($this->stmt)) {
-        if (! odbc_free_result($this->stmt)) {
+//        if (! odbc_free_result($this->stmt)) {
             return false;
         }
 
@@ -169,10 +151,11 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
     /**
      * {@inheritdoc}
      */
-    public function columnCount()
+    public function columnCount(): int
     {
+        return $this->stmt->columnCount();
 //        return db2_num_fields($this->stmt) ?: 0;
-        return odbc_num_fields($this->stmt) ?: 0;
+//        return odbc_num_fields($this->stmt) ?: 0;
     }
 
     /**
@@ -180,6 +163,7 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      */
     public function errorCode()
     {
+        return $this->stmt->errorCode();
 //        return db2_stmt_error();
         return odbc_errormsg();
     }
@@ -189,18 +173,21 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      */
     public function errorInfo()
     {
-        return [
+        return $this->stmt->errorInfo();
+//        return [
 //            db2_stmt_errormsg(),
 //            db2_stmt_error(),
-            odbc_errormsg(),
-            odbc_error(),
-        ];
+//            odbc_errormsg(),
+//            odbc_error(),
+//        ];
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @throws DB2Exception
      */
-    public function execute($params = null)
+    public function execute($params = null): Result
     {
         if ($params === null) {
             ksort($this->bindParam);
@@ -222,8 +209,14 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
             $this->writeStringToStream($source, $target);
         }
 
-//        $retval = db2_execute($this->stmt, $params);
-        $retval = odbc_execute($this->stmt, $params);
+        set_error_handler(
+            function ($errno, $errstr) {
+                throw new DB2Exception($errstr, $errno);
+            },
+            E_WARNING
+        );
+        $executed = $this->stmt->execute($params);
+        restore_error_handler();
 
         foreach ($this->lobs as [, $handle]) {
             fclose($handle);
@@ -231,14 +224,16 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
 
         $this->lobs = [];
 
-        if ($retval === false) {
+        if (! $executed) {
+            $errorInfo = $this->stmt->errorInfo();
 //            throw new DB2Exception(db2_stmt_errormsg());
-            throw new DB2Exception(odbc_errormsg());
+            throw new PDOException(sprintf('%s-%d-%s', $errorInfo[0], $errorInfo[1], $errorInfo[2]));
         }
 
         $this->result = true;
 
-        return $retval;
+        return new PDOResult($this->stmt);
+//        return $executed;
     }
 
     /**
@@ -277,8 +272,8 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
             case FetchMode::COLUMN:
                 return $this->fetchColumn();
 
-            case FetchMode::MIXED:
-                return db2_fetch_both($this->stmt);
+//            case FetchMode::MIXED:
+//                return odbc_fetch_array($this->stmt);
 
             case FetchMode::ASSOCIATIVE:
 //                return db2_fetch_assoc($this->stmt);
@@ -294,8 +289,9 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
                     $ctorArgs  = $args[2] ?? [];
                 }
 
+                $result = $this->stmt->fetchObject();
 //                $result = db2_fetch_object($this->stmt);
-                $result = odbc_fetch_object($this->stmt);
+//                $result = odbc_fetch_object($this->stmt);
 
                 if ($result instanceof stdClass) {
                     $result = $this->castObject($result, $className, $ctorArgs);
@@ -304,21 +300,23 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
                 return $result;
 
             case FetchMode::NUMERIC:
-                return db2_fetch_array($this->stmt);
+                return $this->stmt->fetch(PDO::FETCH_ASSOC);
+//                return odbc_fetch_array($this->stmt);
 
             case FetchMode::STANDARD_OBJECT:
+                return $this->stmt->fetchObject();
 //                return db2_fetch_object($this->stmt);
-                return odbc_fetch_object($this->stmt);
+//                return odbc_fetch_object($this->stmt);
 
             default:
-                throw new DB2Exception('Given Fetch-Style ' . $fetchMode . ' is not supported.');
+                throw new PDOException('Given Fetch-Style ' . $fetchMode . ' is not supported.');
         }
     }
 
     /**
      * {@inheritdoc}
      */
-    public function fetchAll($fetchMode = null, $fetchArgument = null, $ctorArgs = null)
+    public function fetchAll($fetchMode = null, $fetchArgument = null, $ctorArgs = null): array
     {
         $rows = [];
 
@@ -359,28 +357,28 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
     /**
      * {@inheritdoc}
      */
-    public function rowCount()
+    public function rowCount(): int
     {
-//        return @db2_num_rows($this->stmt) ? : 0;
-        return @odbc_num_rows($this->stmt) ? : 0;
+        return $this->stmt->rowCount();
     }
 
     /**
      * Casts a stdClass object to the given class name mapping its' properties.
      *
-     * @param stdClass      $sourceObject     Object to cast from.
+     * @param stdClass $sourceObject Object to cast from.
      * @param string|object $destinationClass Name of the class or class instance to cast to.
-     * @param mixed[]       $ctorArgs         Arguments to use for constructing the destination class instance.
+     * @param mixed[] $ctorArgs Arguments to use for constructing the destination class instance.
      *
      * @return object
      *
      * @throws DB2Exception
+     * @throws \ReflectionException
      */
-    private function castObject(stdClass $sourceObject, $destinationClass, array $ctorArgs = [])
+    private function castObject(stdClass $sourceObject, $destinationClass, array $ctorArgs = []): object
     {
         if (! is_string($destinationClass)) {
             if (! is_object($destinationClass)) {
-                throw new DB2Exception(sprintf(
+                throw new PDOException(sprintf(
                     'Destination class has to be of type string or object, %s given.',
                     gettype($destinationClass)
                 ));
@@ -392,7 +390,7 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
 
         $sourceReflection           = new ReflectionObject($sourceObject);
         $destinationClassReflection = new ReflectionObject($destinationClass);
-        /** @var ReflectionProperty[] $destinationProperties */
+
         $destinationProperties = array_change_key_case($destinationClassReflection->getProperties(), CASE_LOWER);
 
         foreach ($sourceReflection->getProperties() as $sourceProperty) {
@@ -432,15 +430,13 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
 
     /**
      * @return resource
-     *
-     * @throws DB2Exception
      */
     private function createTemporaryFile()
     {
         $handle = @tmpfile();
 
         if ($handle === false) {
-            throw new DB2Exception('Could not create temporary file: ' . error_get_last()['message']);
+            throw new PDOException('Could not create temporary file: ' . error_get_last()['message']);
         }
 
         return $handle;
@@ -449,25 +445,22 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
     /**
      * @param resource $source
      * @param resource $target
-     *
-     * @throws DB2Exception
      */
-    private function copyStreamToStream($source, $target) : void
+    private function copyStreamToStream($source, $target): void
     {
         if (@stream_copy_to_stream($source, $target) === false) {
-            throw new DB2Exception('Could not copy source stream to temporary file: ' . error_get_last()['message']);
+            throw new PDOException('Could not copy source stream to temporary file: ' . error_get_last()['message']);
         }
     }
 
     /**
+     * @param string   $string
      * @param resource $target
-     *
-     * @throws DB2Exception
      */
-    private function writeStringToStream(string $string, $target) : void
+    private function writeStringToStream(string $string, $target): void
     {
         if (@fwrite($target, $string) === false) {
-            throw new DB2Exception('Could not write string to temporary file: ' . error_get_last()['message']);
+            throw new PDOException('Could not write string to temporary file: ' . error_get_last()['message']);
         }
     }
 }

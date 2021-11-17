@@ -40,7 +40,7 @@ class DB2IBMiSchemaManager extends DB2LUWIBMiLinuxSchemaManager
      */
     public function listTableColumns($table, $database = null)
     {
-        if ( ! $database) {
+        if (! $database) {
             $database = $this->getDatabase();
         }
 
@@ -113,34 +113,23 @@ class DB2IBMiSchemaManager extends DB2LUWIBMiLinuxSchemaManager
         $length = $tableColumn['length'];
 
         switch (strtolower($tableColumn['typename'])) {
-            case 'smallint':
-                break;
             case 'bigint':
-                break;
             case 'integer':
-                break;
             case 'time':
-                break;
             case 'date':
+            case 'binary':
+            case 'text':
+            case 'blob':
+            case 'datetime':
+            case 'smallint':
                 break;
             case 'string':
                 $fixed = true;
                 break;
-            case 'binary':
-                break;
-            case 'text':
-                break;
-            case 'blob':
-                break;
+            case 'float':
             case 'decimal':
                 $scale = $tableColumn['scale'];
                 $precision = $tableColumn['length'];
-                break;
-            case 'float':
-                $scale = $tableColumn['scale'];
-                $precision = $tableColumn['length'];
-                break;
-            case 'datetime':
                 break;
             default:
         }
@@ -150,7 +139,7 @@ class DB2IBMiSchemaManager extends DB2LUWIBMiLinuxSchemaManager
             'unsigned'      => (bool) $unsigned,
             'fixed'         => (bool) $fixed,
             'default'       => $default,
-            'autoincrement' => (boolean) $tableColumn['autoincrement'],
+            'autoincrement' => (bool) $tableColumn['autoincrement'],
             'notnull'       => (bool) ($tableColumn['nulls'] == 'N'),
             'scale'         => null,
             'precision'     => null,

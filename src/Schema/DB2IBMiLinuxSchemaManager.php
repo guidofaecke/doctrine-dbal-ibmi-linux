@@ -9,7 +9,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
 use DoctrineDbalIbmiLinux\Platform\DB2IBMiLinuxPlatform;
-use const CASE_LOWER;
+
 use function array_change_key_case;
 use function is_resource;
 use function preg_match;
@@ -17,6 +17,8 @@ use function str_replace;
 use function strpos;
 use function strtolower;
 use function substr;
+
+use const CASE_LOWER;
 
 /**
  * IBM Db2 Schema Manager.
@@ -208,7 +210,7 @@ class DB2IBMiLinuxSchemaManager extends AbstractSchemaManager
         //$view['text'] = (is_resource($view['text']) ? stream_get_contents($view['text']) : $view['text']);
         if (! is_resource($view['text'])) {
             $pos = strpos($view['text'], ' AS ');
-            $sql = substr($view['text'], $pos+4);
+            $sql = substr($view['text'], $pos + 4);
         } else {
             $sql = '';
         }
@@ -216,7 +218,7 @@ class DB2IBMiLinuxSchemaManager extends AbstractSchemaManager
         return new View($view['name'], $sql);
     }
 
-    public function listTableDetails($tableName) : Table
+    public function listTableDetails($tableName): Table
     {
         $table = parent::listTableDetails($tableName);
 
