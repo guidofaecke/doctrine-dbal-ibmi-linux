@@ -4,6 +4,7 @@ namespace DoctrineDbalIbmiLinux\Driver;
 
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\Driver\StatementIterator;
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\DBAL\ParameterType;
 use IteratorAggregate;
@@ -12,30 +13,14 @@ use ReflectionClass;
 use ReflectionObject;
 use ReflectionProperty;
 use stdClass;
+
 use function odbc_error;
 use function odbc_errormsg;
 use function odbc_fetch_array;
 use function odbc_fetch_object;
 use function odbc_num_rows;
 use function var_dump;
-use const CASE_LOWER;
-use const DB2_BINARY;
-use const DB2_CHAR;
-use const DB2_LONG;
-use const DB2_PARAM_FILE;
-use const DB2_PARAM_IN;
 use function array_change_key_case;
-use function db2_bind_param;
-use function db2_execute;
-use function db2_fetch_array;
-use function db2_fetch_assoc;
-use function db2_fetch_both;
-use function db2_fetch_object;
-use function db2_free_result;
-use function db2_num_fields;
-use function db2_num_rows;
-use function db2_stmt_error;
-use function db2_stmt_errormsg;
 use function error_get_last;
 use function fclose;
 use function func_get_args;
@@ -51,6 +36,8 @@ use function stream_copy_to_stream;
 use function stream_get_meta_data;
 use function strtolower;
 use function tmpfile;
+
+use const CASE_LOWER;
 
 class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
 {
@@ -140,13 +127,9 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      *
      * @throws DB2Exception
      */
-    private function bind($position, &$variable) : void //, int $parameterType, int $dataType) : void
+    private function bind(int $position, &$variable) : void
     {
         $this->bindParam[$position] =& $variable;
-
-//        if (! db2_bind_param($this->stmt, $position, 'variable', $parameterType, $dataType)) {
-//            throw new DB2Exception(db2_stmt_errormsg());
-//        }
     }
 
     /**
@@ -156,7 +139,6 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
     {
         $this->bindParam = [];
 
-//        if (! db2_free_result($this->stmt)) {
         if (! odbc_free_result($this->stmt)) {
             return false;
         }
@@ -171,7 +153,6 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      */
     public function columnCount()
     {
-//        return db2_num_fields($this->stmt) ?: 0;
         return odbc_num_fields($this->stmt) ?: 0;
     }
 
@@ -180,7 +161,6 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      */
     public function errorCode()
     {
-//        return db2_stmt_error();
         return odbc_errormsg();
     }
 
@@ -190,8 +170,6 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
     public function errorInfo()
     {
         return [
-//            db2_stmt_errormsg(),
-//            db2_stmt_error(),
             odbc_errormsg(),
             odbc_error(),
         ];
@@ -222,7 +200,6 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
             $this->writeStringToStream($source, $target);
         }
 
-//        $retval = db2_execute($this->stmt, $params);
         $retval = odbc_execute($this->stmt, $params);
 
         foreach ($this->lobs as [, $handle]) {
@@ -232,7 +209,6 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
         $this->lobs = [];
 
         if ($retval === false) {
-//            throw new DB2Exception(db2_stmt_errormsg());
             throw new DB2Exception(odbc_errormsg());
         }
 
@@ -277,11 +253,10 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
             case FetchMode::COLUMN:
                 return $this->fetchColumn();
 
-            case FetchMode::MIXED:
-                return db2_fetch_both($this->stmt);
+//            case FetchMode::MIXED:
+//                return odbdb2_fetch_both($this->stmt);
 
             case FetchMode::ASSOCIATIVE:
-//                return db2_fetch_assoc($this->stmt);
                 return odbc_fetch_array($this->stmt);
 
             case FetchMode::CUSTOM_OBJECT:
@@ -294,7 +269,6 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
                     $ctorArgs  = $args[2] ?? [];
                 }
 
-//                $result = db2_fetch_object($this->stmt);
                 $result = odbc_fetch_object($this->stmt);
 
                 if ($result instanceof stdClass) {
@@ -304,14 +278,13 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
                 return $result;
 
             case FetchMode::NUMERIC:
-                return db2_fetch_array($this->stmt);
+                return odbc_fetch_array($this->stmt);
 
             case FetchMode::STANDARD_OBJECT:
-//                return db2_fetch_object($this->stmt);
                 return odbc_fetch_object($this->stmt);
 
             default:
-                throw new DB2Exception('Given Fetch-Style ' . $fetchMode . ' is not supported.');
+                throw new Exception('Given Fetch-Style ' . $fetchMode . ' is not supported.');
         }
     }
 
@@ -361,7 +334,6 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      */
     public function rowCount()
     {
-//        return @db2_num_rows($this->stmt) ? : 0;
         return @odbc_num_rows($this->stmt) ? : 0;
     }
 
@@ -374,13 +346,13 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      *
      * @return object
      *
-     * @throws DB2Exception
+     * @throws Exception
      */
     private function castObject(stdClass $sourceObject, $destinationClass, array $ctorArgs = [])
     {
         if (! is_string($destinationClass)) {
             if (! is_object($destinationClass)) {
-                throw new DB2Exception(sprintf(
+                throw new Exception(sprintf(
                     'Destination class has to be of type string or object, %s given.',
                     gettype($destinationClass)
                 ));
@@ -440,7 +412,7 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
         $handle = @tmpfile();
 
         if ($handle === false) {
-            throw new DB2Exception('Could not create temporary file: ' . error_get_last()['message']);
+            throw new Exception('Could not create temporary file: ' . error_get_last()['message']);
         }
 
         return $handle;
@@ -450,24 +422,24 @@ class DB2IBMiLinuxStatement implements IteratorAggregate, Statement
      * @param resource $source
      * @param resource $target
      *
-     * @throws DB2Exception
+     * @throws Exception
      */
     private function copyStreamToStream($source, $target) : void
     {
         if (@stream_copy_to_stream($source, $target) === false) {
-            throw new DB2Exception('Could not copy source stream to temporary file: ' . error_get_last()['message']);
+            throw new Exception('Could not copy source stream to temporary file: ' . error_get_last()['message']);
         }
     }
 
     /**
      * @param resource $target
      *
-     * @throws DB2Exception
+     * @throws Exception
      */
     private function writeStringToStream(string $string, $target) : void
     {
         if (@fwrite($target, $string) === false) {
-            throw new DB2Exception('Could not write string to temporary file: ' . error_get_last()['message']);
+            throw new Exception('Could not write string to temporary file: ' . error_get_last()['message']);
         }
     }
 }

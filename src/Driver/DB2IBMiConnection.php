@@ -3,10 +3,10 @@
 namespace DoctrineDbalIbmiLinux\Driver;
 
 use Doctrine\DBAL\Driver\Connection;
-use Doctrine\DBAL\Driver\IBMDB2\DB2Exception;
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\ParameterType;
-use stdClass;
+
 use function odbc_commit;
 use function odbc_error;
 use function odbc_errormsg;
@@ -27,22 +27,20 @@ class DB2IBMiConnection implements Connection, ServerInfoAwareConnection
      * @param string  $password
      * @param mixed[] $driverOptions
      *
-     * @throws DB2Exception
+     * @throws Exception
      */
     public function __construct(array $params, $username, $password)
     {
         $isPersistent = (isset($params['persistent']) && $params['persistent'] === true);
 
         if ($isPersistent) {
-//            $conn = db2_pconnect($params['dbname'], $username, $password, $driverOptions);
             $conn = odbc_pconnect($params['dbname'], $username, $password);
         } else {
-//            $conn = db2_connect($params['dbname'], $username, $password, $driverOptions);
             $conn = odbc_connect($params['dbname'], $username, $password);
         }
 
         if ($conn === false) {
-            throw new DB2Exception(odbc_errormsg());
+            throw new Exception(odbc_errormsg());
         }
 
         $this->conn = $conn;
@@ -71,7 +69,7 @@ class DB2IBMiConnection implements Connection, ServerInfoAwareConnection
     {
         $stmt = @odbc_prepare($this->conn, $sql);
         if (! $stmt) {
-            throw new DB2Exception(odbc_errormsg());
+            throw new Exception(odbc_errormsg());
         }
 
         return new DB2IBMiLinuxStatement($stmt);
@@ -95,8 +93,6 @@ class DB2IBMiConnection implements Connection, ServerInfoAwareConnection
      */
     public function quote($input, $type = ParameterType::STRING)
     {
-//        $input = db2_escape_string($input);
-
         if ($type === ParameterType::INTEGER) {
             return $input;
         }
@@ -112,7 +108,7 @@ class DB2IBMiConnection implements Connection, ServerInfoAwareConnection
         $stmt = @odbc_exec($this->conn, $statement);
 
         if ($stmt === false) {
-            throw new DB2Exception(odbc_errormsg());
+            throw new Exception(odbc_errormsg());
         }
 
         return odbc_num_rows($stmt);
@@ -140,7 +136,7 @@ class DB2IBMiConnection implements Connection, ServerInfoAwareConnection
     public function commit()
     {
         if (! odbc_commit($this->conn)) {
-            throw new DB2Exception(odbc_errormsg($this->conn));
+            throw new Exception(odbc_errormsg($this->conn));
         }
         odbc_autocommit($this->conn, true);
     }
@@ -151,7 +147,7 @@ class DB2IBMiConnection implements Connection, ServerInfoAwareConnection
     public function rollBack()
     {
         if (! odbc_rollback($this->conn)) {
-            throw new DB2Exception(odbc_errormsg($this->conn));
+            throw new Exception(odbc_errormsg($this->conn));
         }
         odbc_autocommit($this->conn, true);
     }
