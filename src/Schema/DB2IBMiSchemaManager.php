@@ -174,8 +174,8 @@ class DB2IBMiSchemaManager extends DB2LUWIBMiLinuxSchemaManager
         $dbParams = $this->_conn->getParams();
         if (array_key_exists('driverOptions', $dbParams) && array_key_exists('i5_lib', $dbParams['driverOptions'])) {
             return $dbParams['driverOptions']['i5_lib'];
-        } else {
-            return null;
         }
+
+        return null;
     }
 }

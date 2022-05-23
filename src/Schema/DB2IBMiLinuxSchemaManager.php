@@ -185,7 +185,7 @@ class DB2IBMiLinuxSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritdoc}
      */
-    protected function _getPortableForeignKeyRuleDef($def)
+    protected function _getPortableForeignKeyRuleDef($def): ?string
     {
         if ($def === 'C') {
             return 'CASCADE';
@@ -216,7 +216,7 @@ class DB2IBMiLinuxSchemaManager extends AbstractSchemaManager
         return new View($view['name'], $sql);
     }
 
-    public function listTableDetails($tableName) : Table
+    public function listTableDetails($tableName): Table
     {
         $table = parent::listTableDetails($tableName);
 
