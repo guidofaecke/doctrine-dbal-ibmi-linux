@@ -1,5 +1,9 @@
 # doctrine-dbal-ibmi-linux
 
+### This project has not been worked on in over 2 years. For an up-to-date version, please refer to [Doctrine DBAL PDO IBM i](https://github.com/guidofaecke/doctrine-dbal-pdo-ibmi)
+
+
+
 I needed a solution to use Doctrine within an Zend-Expressive application, while moving the app onto a Linux server and keep using DB2 on the IBMi and all I had was ODBC.
 
 - Keep using Doctrine
